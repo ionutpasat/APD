@@ -1,0 +1,49 @@
+Tema1 APD - Pasat Ionut 334CC - timp de lucru: 2 zile
+
+/----Crearea structurii argument si a structurilor de date---\
+struct arg {
+  int R; -> nr REDUCERI
+  int M; -> nr MAPPERI
+  int id; -> id_thread
+  pthread_mutex_t *lock; -> mutex
+  vector<string> *files; -> numele fisierelor de intrare
+  pthread_barrier_t *barrier; -> bariera
+  vector<vector<long>> *result; -> vector rezultat dupa operatia de map
+};
+
+    Toate thread-urile pornesc in acelasi timp avand ca argument o instanta a
+structurii de mai sus. Referintele din structura sunt globale pentru toate
+thread-urile create.
+    Fisierele le citesc in main si le pun in lista "files" din structura.
+
+/---fmap - functia pt mapperi---\
+    Initial in aceasta functie fiecare thread isi ia PRIMUL fisier din lista
+"files" (atata timp cat lista nu e goala), apoi il sterge din lista pentru
+a nu mai fi prelucrat si de alte threaduri. Aceste 2 operatii se fac intr-un 
+lock deoarece nu vreau ca mai multe thread-uri sa stearga din lista "files" la
+un moment dat sau acelasi fisier sa fie prelucrat de mai multe thread-uri. 
+Mai departe copiaza elementele din fisier intr o lista declarata local. 
+Folosind in continuare 2 for-uri, pentru fiecare putere data (de la 2 la R)
+verific daca oricare din numerele din lista este putere perfecta folosind 
+"check_power_binary_search". Daca verificarea trece se adauga numarul in "result" 
+in lista cu indexul corespunzator puterii - 2 (0 -> 2, 1 -> 3, etc..). Din nou
+trebuie folosit un lock pentru a nu lasa mai multe thread-uri sa scrie simultan.
+La final am plasat o bariera pentru a astepta toti maperii (initializata cu M + R).
+
+/---freduce - functia pentru reduceri---\
+    La inceput se afla o bariera prin care se asteapta toti reducerii
+(vor trece mai departe doar daca toti mapperii au ajuns la si ei la bariera
+precedenta). Dupa ce trec de bariera fiecare reducer are un id care face match
+pe un index din "result" (2 -> R), iau lista de numere din "result" care se 
+afla la acel index, sterge duplicatele folosind un set si scrie lungimea 
+acestuia intr un fisier cu indexul corespunzator.
+
+/---check_power_binary_search---\
+    Functia apelata de catre mapperi pentru a decide daca un numar este putere
+perfecta sau nu. Aceasta primeste 4 parametrii lower_bound (2) - nr minim care
+se ridica la putere, upper_bound (sqrt(num) + 1) - nr maxim care se ridica la
+putere, exp - exponentul pentru care se face verificarea, num - nr de verificat.
+Se face binary search intre lower_bound si upper_bound pentru a gasi daca vreun
+numar din acest interval ridicat la exp are rezultatul num. Daca da se intoarce
+true, altfel false;
+
